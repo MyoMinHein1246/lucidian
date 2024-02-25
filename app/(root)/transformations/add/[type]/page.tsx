@@ -3,7 +3,7 @@ import React from "react";
 import { transformationTypes } from "@/constants";
 import TransformationForm from "@/components/shared/TransformationForm";
 import { auth } from "@clerk/nextjs";
-import { getUserById } from "@/lib/actions/user.action";
+import { getUserById } from "@/lib/actions/user.actions";
 import { redirect } from "next/navigation";
 
 const AddTransformationTypePage = async ({
