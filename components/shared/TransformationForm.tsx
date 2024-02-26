@@ -20,7 +20,7 @@ import {
 } from "@/constants";
 import { CustomField } from "./CustomField";
 import { Input } from "../ui/input";
-import { startTransition, useState, useTransition } from "react";
+import { startTransition, useEffect, useState, useTransition } from "react";
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { updateCredits } from "@/lib/actions/user.actions";
@@ -29,13 +29,16 @@ import TransformedImage from "./TransformedImage";
 import { getCldImageUrl } from "next-cloudinary";
 import { addImage, updateImage } from "@/lib/actions/image.actions";
 import { useRouter } from "next/navigation";
+import { InsufficientCreditsModal } from "./InsufficientCreditsModel";
 
 export const formSchema = z.object({
-  title: z.string(),
+  title: z.string().min(5, {
+    message: "Title must be at least 5 characters.",
+  }),
   aspectRatio: z.string().optional(),
   color: z.string().optional(),
   prompt: z.string().optional(),
-  publicId: z.string(),
+  publicId: z.string({ required_error: "Public Id must be provided" }),
 });
 
 const TransformationForm = ({
@@ -126,7 +129,7 @@ const TransformationForm = ({
               _id: data._id,
             },
             userId,
-            path: "/",
+            path: `/transformations/${data._id}`,
           });
 
           if (updatedImage) {
@@ -173,9 +176,9 @@ const TransformationForm = ({
           [fieldName === "prompt" ? "prompt" : "to"]: value,
         },
       }));
+    }, 1000)();
 
-      return onChangeField(value);
-    }, 1000);
+    return onChangeField(value);
   };
 
   const onTransformHandler = async () => {
@@ -192,9 +195,16 @@ const TransformationForm = ({
     });
   };
 
+  useEffect(() => {
+    if (image && (type === "restore" || type === "removeBackground")) {
+      setNewTransformation(transformationType.config);
+    }
+  }, [image, transformationType.config, type]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {creditBalance < Math.abs(creditFee) && <InsufficientCreditsModal />}
         <CustomField
           control={form.control}
           name="title"
@@ -214,6 +224,7 @@ const TransformationForm = ({
                 onValueChange={(value) =>
                   onSelectFieldHandler(value, field.onChange)
                 }
+                value={field.value}
               >
                 <SelectTrigger className="select-field">
                   <SelectValue placeholder="Select size" />
